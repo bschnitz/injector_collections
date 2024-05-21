@@ -35,7 +35,6 @@ class Generator:
         # importlib.reload(collectionModule)
 
     def getModuleDirectory(self, module: str|ModuleType) -> str:
-        print(module)
         if isinstance(module, str):
             moduleSpec = util.find_spec(module)
             modulePath = moduleSpec.origin

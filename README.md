@@ -22,9 +22,9 @@ my_collections
 ```
 Then include into `__init__.py` everything from `stubs` and `generated`:
 ```python
-from injection.collections.stubs import *
-import injection.collections.generate_collections
-from injection.collections.generated import *
+from my_collections.stubs import *
+import my_collections.generate_collections
+from my_collections.generated import *
 ```
 **Important:** Make sure, that You import the `generate_collections` module
 before importing the generated collections, since otherwise of course you will
