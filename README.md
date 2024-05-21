@@ -9,22 +9,22 @@ tagged using the `@CollectionItem` keyword and a designated `Collection`-class.
 
 To be able to use this package, You must create a new module-directory inside
 your python project. The name of this module-directory does not matter, let's
-name it `collections` here. Inside this module-directory the two submodules
+name it `my_collections` here. Inside this module-directory the two submodules
 (python-files) `generated.py` and `stubs.py` must be created. The following
 file-tree will be the result:
 ```
-collections
+my_collections
 ├── generated.py
 ├── __init__.py
 └── stubs.py
 ```
 Then include into `__init__.py` everything from `stubs` and `generated`:
 ```python
-from collections.stubs import *
-from collections.generated import *
+from my_collections.stubs import *
+from my_collections.generated import *
 ```
-Make sure, that `collections.generated` is imported last, since it shall
-overwrite the collections from `collections.stubs`.
+Make sure, that `my_collections.generated` is imported last, since it shall
+overwrite the collections from `my_collections.stubs`.
 
 ## Usage / Example
 
@@ -56,11 +56,11 @@ outer = injector.get(App)
 
 Now the first step is to create a stub collection for your plugins:
 ``` python
-# collections/stub.py
+# my_collections/stub.py
 
 from injector_collections import Collection
 
-class PluginCollection(Collection)
+class PluginCollection(Collection):
     pass
 ```
 **Note:** The collection class (here `PluginCollection`) should not have any
@@ -77,7 +77,7 @@ your previously defined `PluginCollection` as argument:
 from injector_collections import CollectionItem
 # the following line will import PluginCollection from stubs, if not yet
 # existing or from the generated collections, if they were already generated.
-from collections import PluginCollection
+from my_collections import PluginCollection
 
 @CollectionItem(PluginCollection)
 class HelloPlugin:
@@ -102,13 +102,13 @@ Now we're almost done. We just have to make sure the plugins are generated when
 import os
 from injector import inject
 from injector_collections import generateCollections
-import collections
+import my_collections
 
 scandir = os.path.dirname(__file__)
 # This auto-generates the real collections from the stubs. You need to provide
-# the collections-module You created during setup and a list of directories to
+# the my_collections-module You created during setup and a list of directories to
 # scan (recursively) for your collection items.
-generateCollections(inject, collections, [scandir])
+generateCollections(inject, my_collections, [scandir])
 ```
 
 Now you only need to import `generate_collections` and of course the collection
@@ -118,7 +118,7 @@ itself to your `App` and use it:
 # app.py
 
 import generate_collections
-from collections import PluginCollection
+from my_collections import PluginCollection
 
 from plugins import HelloPlugin
 
@@ -132,10 +132,10 @@ class App:
 
          def run(self):
              # plugins.items contains a dict containing the plugins:
-             for plugin in plugins.items.values():
+             for plugin in self.plugins.items.values():
                  plugin.run() # prints "Hello Friends!" and "Goodby Friends!"
              # Or just call a single plugin from the collection:
-             plugins[HelloPlugin].run()
+             self.plugins[HelloPlugin].run()
              # runs the app
 ...
 ```
@@ -145,6 +145,7 @@ have the stubs imported (if not generated previously).
 
 ### In Production
 
-For a production system, just remove the generation of collections and just
-make sure to check in the generated collections module. Because it suffices to
-generate the collections once.
+For a production system, just remove the generation of collections (in the
+example remove the `import generate_collections` line) and just make sure to
+check in the `my_collections` module. Because it suffices to generate the
+collections once.

@@ -1,5 +1,5 @@
 from {{ inject.__module__ }} import {{ inject.__name__ }}
-from ic.Collection import Collection
+from injector_collections import Collection
 {%- for collection, citems in collectionItems|items %}
 {%- for (key, className) in citems %}
 from {{ className.__module__ }} import {{ className.__name__ }}
