@@ -28,12 +28,6 @@ class Generator:
         with open(f'{collectionModuleDirectory}/{self.generatedCollectionsFileName}', 'w') as f:
             f.write(self.renderCollectionsTemplate(inject, collectionMetadata))
 
-        # reload the collections module to make generated collections
-        # visible when using import from other places
-        # collectionModule = importlib.import_module(collectionModule)
-        # importlib.reload(collectionModule.generated)
-        # importlib.reload(collectionModule)
-
     def getModuleDirectory(self, module: str|ModuleType) -> str:
         if isinstance(module, str):
             moduleSpec = util.find_spec(module)
