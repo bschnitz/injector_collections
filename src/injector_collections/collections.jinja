@@ -23,7 +23,7 @@ class {{ collection.__name__ }}(Collection):
         self[{{ className }}] = v{{ className }}
         self.byClassname['{{ className }}'] = v{{ className }}
         {%- endfor %}
-
+    {% if True %}{% endif %}
     {%- set itemTypeName = collection.getItemType().__name__ %}
     {%- set itemTypeModule = collection.getItemType().__module__ %}
     {%- set itemType = itemTypeModule + '.' + itemTypeName %}
