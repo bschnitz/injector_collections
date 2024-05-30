@@ -24,21 +24,24 @@ class {{ collection.__name__ }}(Collection):
         self.byClassname['{{ className }}'] = v{{ className }}
         {%- endfor %}
 
+    {% set itemTypeName = collection.getItemType().__name__ %}
+    {% set itemTypeModule = collection.getItemType().__module__ %}
+    {% set itemType = itemTypeName + itemTypeModule %}
     @property
-    def items(self) -> dict[Type[{{ collection.getItemType() }}], {{ collection.getItemType() }}]:
+    def items(self) -> dict[Type[{{ itemType }}], {{ itemType }}]:
         return self._items
 
-    def __getitem__(self, key: Type[{{ collection.getItemType() }}]) -> {{ collection.getItemType() }}:
+    def __getitem__(self, key: Type[{{ itemType }}]) -> {{ itemType }}:
         return self._items[key]
 
-    def __setitem__(self, key: Type[{{ collection.getItemType() }}], item: {{ collection.getItemType() }}):
+    def __setitem__(self, key: Type[{{ itemType }}], item: {{ itemType }}):
         self._items[key] = item
 
     @property
-    def byClassname(self) -> dict[str, {{ collection.getItemType() }}]:
+    def byClassname(self) -> dict[str, {{ itemType }}]:
         return self._byClassname
 
     @classmethod
     def getItemType(cls):
-        return {{ collection.getItemType() }}
+        return {{ itemType }}
 {%- endfor %}
