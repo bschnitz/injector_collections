@@ -138,7 +138,9 @@ class App:
                  plugin.run() # prints "Hello Friends!" and "Goodby Friends!"
              # Or just call a single plugin from the collection:
              self.plugins[HelloPlugin].run()
-             # runs the app
+             # also getting plugins simply by class name (if unambigous in this
+             # collection) is possible
+             self.plugins.byClassname['HelloPlugin'].run()
 ...
 ```
 
@@ -148,3 +150,23 @@ For a production system, just remove the generation of collections (in the
 example remove the `import generate_collections` line) and just make sure to
 check in the `my_collections` module. Because it suffices to generate the
 collections once.
+
+### Type Hinting for Items in Collection
+
+If all items in a collection e.g. implement a common Interface, the generated
+Collections may make use of type-Hinting. Simply implement a
+`getItemType`-Method in your stubs like that:
+``` python
+# my_collections/stub.py
+
+from injector_collections import Collection
+
+class PluginCollection(Collection):
+    @classmethod
+    def getItemType(cls):
+        return PluginItemInterface
+```
+
+After that the `PluginCollection.items`, `PluginCollection.__get__`,
+`PluginCollection.__set__` und `PluginCollection.byClassname` attributes/methods
+have proper type hints on `PluginItemInterface`.
