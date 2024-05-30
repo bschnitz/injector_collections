@@ -8,7 +8,7 @@ from {{ class.__module__ }} import {{ className }}
 
 {%- for collection, citems in collectionItems|items %}
 {% if True %}{% endif %}
-class {{ className }}(Collection):
+class {{ collection.__name__ }}(Collection):
     @{{ inject.__name__ }}
     def __init__(
             self,

@@ -1,13 +1,12 @@
 from typing import Type
-from injector_collections.CollectionItem import CollectionItem
 
 class Collection:
     def __init__(self):
-        self._items: dict[Type[CollectionItem], CollectionItem] = {}
-        self._byClassname: dict[str, CollectionItem] = {}
+        self._items: dict[Type, object] = {}
+        self._byClassname: dict[str, object] = {}
 
     @property
-    def items(self) -> dict[Type[CollectionItem], CollectionItem]:
+    def items(self) -> dict[Type, object]:
         return self._items
 
     def __getitem__(self, key):
@@ -17,5 +16,5 @@ class Collection:
         self._items[key] = item
 
     @property
-    def byClassname(self) -> dict[str, CollectionItem]:
+    def byClassname(self) -> dict[str, object]:
         return self._byClassname
