@@ -4,6 +4,7 @@ from injector_collections.CollectionItem import CollectionItem
 class Collection:
     def __init__(self):
         self._items: dict[Type[CollectionItem], CollectionItem] = {}
+        self._byClassname: dict[str, CollectionItem] = {}
 
     @property
     def items(self) -> dict[Type[CollectionItem], CollectionItem]:
@@ -14,3 +15,7 @@ class Collection:
 
     def __setitem__(self, key, item):
         self._items[key] = item
+
+    @property
+    def byClassname(self) -> dict[str, CollectionItem]:
+        return self._byClassname
