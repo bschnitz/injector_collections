@@ -24,9 +24,9 @@ class {{ collection.__name__ }}(Collection):
         self.byClassname['{{ className }}'] = v{{ className }}
         {%- endfor %}
 
-    {% set itemTypeName = collection.getItemType().__name__ %}
-    {% set itemTypeModule = collection.getItemType().__module__ %}
-    {% set itemType = itemTypeModule + '.' + itemTypeName %}
+    {%- set itemTypeName = collection.getItemType().__name__ %}
+    {%- set itemTypeModule = collection.getItemType().__module__ %}
+    {%- set itemType = itemTypeModule + '.' + itemTypeName %}
     @property
     def items(self) -> dict[Type[{{ itemType }}], {{ itemType }}]:
         return self._items
