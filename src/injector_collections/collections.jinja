@@ -3,10 +3,12 @@ from injector_collections import Collection
 {%- for collection, citems in collectionItems|items %}
 {%- for (className, class) in citems %}
 from {{ class.__module__ }} import {{ className }}
+from typing import Type
 {%- endfor %}
 {%- endfor %}
 
 {%- for collection, citems in collectionItems|items %}
+import {{ collection.getItemType().__module__ }}
 {% if True %}{% endif %}
 class {{ collection.__name__ }}(Collection):
     @{{ inject.__name__ }}
