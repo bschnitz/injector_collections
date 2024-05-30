@@ -21,4 +21,22 @@ class {{ collection.__name__ }}(Collection):
         self[{{ className }}] = v{{ className }}
         self.byClassname['{{ className }}'] = v{{ className }}
         {%- endfor %}
+
+    @property
+    def items(self) -> dict[Type[{{ collection.getItemType() }}], {{ collection.getItemType() }}]:
+        return self._items
+
+    def __getitem__(self, key: Type[{{ collection.getItemType() }}]) -> {{ collection.getItemType() }}:
+        return self._items[key]
+
+    def __setitem__(self, key: Type[{{ collection.getItemType() }}], item: {{ collection.getItemType() }}):
+        self._items[key] = item
+
+    @property
+    def byClassname(self) -> dict[str, {{ collection.getItemType() }}]:
+        return self._byClassname
+
+    @classmethod
+    def getItemType(cls):
+        return {{ collection.getItemType() }}
 {%- endfor %}
