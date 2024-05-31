@@ -9,26 +9,19 @@ tagged using the `@CollectionItem` keyword and a designated `Collection`-class.
 
 To be able to use this package, You must create a new module-directory inside
 your python project. The name of this module-directory does not matter, let's
-name it `my_collections` here. Inside this module-directory the two submodules
-(python-files) `generated.py` and `stubs.py` must be created. Also a module-file
-`generate-collections.py` should be created.
-The following file-tree will be the result:
+name it `my_collections` here. Inside this module-directory You must create a
+file (module) named `stubs.py` (and of course an `__init__.py`).
+
+Provided your root-directory is named `src`, the following file-tree will be the
+result:
 ```
-my_collections
-├── __init__.py
-├── generate_collections.py
-├── stubs.py
-└── generated.py
+src
+└── my_collections
+    ├── __init__.py
+    └── stubs.py
 ```
-Then include into `__init__.py` everything from `stubs` and `generated`:
-```python
-from my_collections.stubs import *
-import my_collections.generate_collections
-from my_collections.generated import *
-```
-**Important:** Make sure, that You import the `generate_collections` module
-before importing the generated collections, since otherwise of course you will
-only have stubs on the first invokation.
+
+All files can be initially empty.
 
 ## Usage / Example
 
@@ -69,9 +62,7 @@ class PluginCollection(Collection):
 ```
 **Note:** The collection class (here `PluginCollection`) should not have any
 implementation. Currently any implementation will just be ignored and cannot be
-used after the actual class was generated from the stub. The stubs sole purpose
-is actually just to provied the LSP with some definitions, before the real
-collection is generated.
+used after the actual class was generated from the stub.
 
 Next add some Plugins as an example. And Tag them with `@PluginCollection` and
 your previously defined `PluginCollection` as argument:
@@ -81,7 +72,7 @@ your previously defined `PluginCollection` as argument:
 from injector_collections import CollectionItem
 # the following line will import PluginCollection from stubs, if not yet
 # existing or from the generated collections, if they were already generated.
-from my_collections import PluginCollection
+from my_collections.stubs import PluginCollection
 
 @CollectionItem(PluginCollection)
 class HelloPlugin:
@@ -96,23 +87,25 @@ class GoodbyPlugin:
 
 **Important:** Currently you need to import `CollectionItem` literally, as the
 code will be scanned for files containing the `@CollectionItem` string, which
-will then be imported to auto-generate the collections!
+will then be imported to generate the collections!
 
-Now we're almost done. We just have to make sure the plugins are generated when
-**before** the application runs. Now we will edit the
-`my_collections/generate_collections.py` to have it generate our
-`PluginCollection`:
-``` python
-# generate_collections.py
+Now we're almost done. The last thing to do, before we can use our actual
+collections is to generate them, of course! Create a small script under your
+projects root-directory:
 
+```python
+# generate.py
 from injector import inject
 from injector_collections import generateCollections
-
-# This auto-generates the real collections from the stubs. You need to provide
-# the my_collections-module and a list of modules to scan for your collection
-# items (in this case the plugins module suffices). If those modules are
-# directories, all modules in them will be scanned recursively.
+# First argument of generateCollections is your my_collections-module name, the
+# second a list of modules containing any collection items (in this case your
+# plugins-module).
 generateCollections(inject, "my_collections", ['plugins'])
+```
+
+And execute it:
+```
+python ./generate.py
 ```
 
 Now you just need to import the `PluginCollection` to your `App` and use it:
@@ -120,7 +113,8 @@ Now you just need to import the `PluginCollection` to your `App` and use it:
 ```python
 # app.py
 
-from my_collections import PluginCollection
+# mark that this time, we import from the generated collections, not the stubs!
+from my_collections.generated import PluginCollection
 
 from plugins import HelloPlugin
 
@@ -144,13 +138,6 @@ class App:
 ...
 ```
 
-### In Production
-
-For a production system, just remove the generation of collections (in the
-example remove the `import generate_collections` line) and just make sure to
-check in the `my_collections` module. Because it suffices to generate the
-collections once.
-
 ### Type Hinting for Items in Collection
 
 If all items in a collection e.g. implement a common Interface, the generated
@@ -159,12 +146,13 @@ Collections may make use of type-Hinting. Simply implement a
 ``` python
 # my_collections/stub.py
 
+from plugins import PluginInterface
 from injector_collections import Collection
 
 class PluginCollection(Collection):
     @classmethod
     def getItemType(cls):
-        return PluginItemInterface
+        return PluginInterface
 ```
 
 After that the `PluginCollection.items`, `PluginCollection.__get__`,

@@ -1,4 +1,5 @@
 import os
+import shutil
 import pkgutil
 import importlib
 from types import ModuleType
@@ -8,10 +9,11 @@ from jinja2 import Environment
 from injector_collections.CollectionItem import CollectionItem
 import injector_collections
 from importlib import util
+from pathlib import Path
 
 class Generator:
-    generatedCollectionsFileName = 'generated.py'
-    collectionsTemplateFilename = 'collections.jinja'
+    generatedCollectionsDirName = 'generated'
+    collectionTemplateFilename = 'collection.jinja'
     def generate(
             self,
             inject: Callable,
@@ -19,14 +21,40 @@ class Generator:
             scannedModules: Iterable[str]
             ):
         collectionModuleDirectory = self.getModuleDirectory(collectionModule)
-        # empty collections module to avoid circular imports
-        with open(f'{collectionModuleDirectory}/{self.generatedCollectionsFileName}', 'w') as f:
-            pass
+
+        generatedDirPath = f'{collectionModuleDirectory}/{self.generatedCollectionsDirName}'
+        shutil.rmtree(generatedDirPath, ignore_errors=True)
+        os.makedirs(generatedDirPath, exist_ok=True)
+
+        collectionModuleName = self.getModuleName(collectionModule)
+
+        # we must import the stubs to the generated module, since later on,
+        # there may be imports like: "from path.to.generated import xyz" in
+        # files which contain the @CollectionItem decorator, which will be
+        # imported by gatherCollectionMetadata. This can happen, if a
+        # collection item itself uses a collection.
+        with open(f'{generatedDirPath}/__init__.py', 'w') as f:
+            f.write(f"from {collectionModuleName}.stubs import *\n")
 
         collectionMetadata = self.gatherCollectionMetadata(scannedModules)
 
-        with open(f'{collectionModuleDirectory}/{self.generatedCollectionsFileName}', 'w') as f:
-            f.write(self.renderCollectionsTemplate(inject, collectionMetadata))
+        # create each collection in a seperate '<CollectionName>.py' file
+        for collectionType, collectionItems in collectionMetadata.items():
+            generatedFilePath = f'{generatedDirPath}/{collectionType.__name__}.py'
+            with open(generatedFilePath, 'w') as f:
+                f.write(self.renderCollectionTemplate(
+                    inject,
+                    collectionType,
+                    collectionItems))
+
+        # import every generated collection into the 'generated'-Module
+        with open(f'{generatedDirPath}/__init__.py', 'w') as f:
+            for file in os.listdir(generatedDirPath):
+                filepath = f'{generatedDirPath}/{file}'
+                if os.path.isfile(filepath) and file != '__init__.py':
+                    moduleClass = Path(filepath).stem
+                    moduleName = f'{collectionModuleName}.generated.{moduleClass}'
+                    f.write(f"from {moduleName} import {moduleClass}\n")
 
     def getModuleDirectory(self, module: str|ModuleType) -> str:
         if isinstance(module, str):
@@ -37,19 +65,24 @@ class Generator:
         assert(modulePath is not None)
         return os.path.dirname(modulePath)
 
-    def renderCollectionsTemplate(
+    def getModuleName(self, module: str|ModuleType) -> str:
+        if isinstance(module, str):
+            return module
+        else:
+            return module.__name__
+
+    def renderCollectionTemplate(
             self,
             inject: Callable,
-            collectionsMetadata: dict[Type, list[tuple[Any, Any]]]
-            ) -> str:
-        # Fill the collection.jinja template to create collections of all decorated
-        # classes
+            collection: Type,
+            collectionItems: list[tuple[Any, Any]]):
         icModuleDirectory = self.getModuleDirectory(injector_collections)
         file_loader = FileSystemLoader(f'{icModuleDirectory}')
         env = Environment(loader=file_loader)
-        template = env.get_template(self.collectionsTemplateFilename)
+        template = env.get_template(self.collectionTemplateFilename)
         return template.render(
-            collectionItems = collectionsMetadata,
+            collection = collection,
+            collectionItems = collectionItems,
             inject = inject
             )
 
