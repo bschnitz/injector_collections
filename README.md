@@ -5,6 +5,12 @@ This package adds collections to the
 collection is an injectable class containing several other classes, which were
 tagged using the `@CollectionItem` keyword and a designated `Collection`-class.
 
+## Installation
+
+```
+pip install injector_collections
+```
+
 ## Setup
 
 To be able to use this package, You must create a new module-directory inside
@@ -70,8 +76,7 @@ your previously defined `PluginCollection` as argument:
 # plugins.py
 
 from injector_collections import CollectionItem
-# the following line will import PluginCollection from stubs, if not yet
-# existing or from the generated collections, if they were already generated.
+# The @CollectionItem decorator needs those stubs as argument
 from my_collections.stubs import PluginCollection
 
 @CollectionItem(PluginCollection)
