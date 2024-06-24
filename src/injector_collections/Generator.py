@@ -1,15 +1,16 @@
 import os
 import shutil
 import pkgutil
-import importlib
+import importlib.machinery
 from types import ModuleType
-from typing import Any, Callable, Iterable, Type
+from typing import Callable, Iterable, Type
 from jinja2 import FileSystemLoader
 from jinja2 import Environment
 from injector_collections.CollectionItem import CollectionItem
 import injector_collections
-from importlib import util
+from importlib import util, import_module
 from pathlib import Path
+from typing import Generator as Gen
 
 class Generator:
     generatedCollectionsDirName = 'generated'
@@ -59,6 +60,7 @@ class Generator:
     def getModuleDirectory(self, module: str|ModuleType) -> str:
         if isinstance(module, str):
             moduleSpec = util.find_spec(module)
+            assert(moduleSpec is not None)
             modulePath = moduleSpec.origin
         else:
             modulePath = module.__file__
@@ -75,7 +77,7 @@ class Generator:
             self,
             inject: Callable,
             collection: Type,
-            collectionItems: list[tuple[Any, Any]]):
+            collectionItems: list[CollectionItem]):
         icModuleDirectory = self.getModuleDirectory(injector_collections)
         file_loader = FileSystemLoader(f'{icModuleDirectory}')
         env = Environment(loader=file_loader)
@@ -89,7 +91,7 @@ class Generator:
     def gatherCollectionMetadata(
             self,
             scannedModules: Iterable[str],
-            ) -> dict[Type, list[tuple[Any, Any]]]:
+            ) -> dict[Type, list[CollectionItem]]:
         ''' Gather Metadata for Collection generation with template
 
         Recursively walks through all modules in 'scannedModules' and gathers
@@ -97,23 +99,29 @@ class Generator:
         '''
         for m in scannedModules:
             for spec in self.walkModules(m):
-                with open(spec.origin, 'r') as f:
-                    if '@CollectionItem' in f.read():
-                        importlib.import_module(spec.name)
+                if spec.origin is not None:
+                    with open(spec.origin, 'r') as f:
+                        if '@CollectionItem' in f.read():
+                            import_module(spec.name)
 
         return CollectionItem.getItems()
 
-    def walkModules(self, rootModule: str):
+    def walkModules(self, rootModule: str) -> Gen[importlib.machinery.ModuleSpec, None, None]:
         info = util.find_spec(rootModule)
+
+        if info is None:
+            return
+
         yield info
 
         if info.submodule_search_locations is None:
             return
 
-        #for modinfo in pkgutil.walk_packages(info.submodule_search_locations):
         for modinfo in pkgutil.iter_modules(info.submodule_search_locations):
             name = f'{info.name}.{modinfo.name}'
-            yield util.find_spec(name)
+            spec = util.find_spec(name)
+            if spec is not None:
+                yield spec
             submods = self.walkModules(name)
             next(submods) # remove the root, which was just yielded
             for mi in submods:

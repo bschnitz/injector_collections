@@ -1,23 +1,34 @@
 from {{ inject.__module__ }} import {{ inject.__name__ }}
 from injector_collections import Collection
 from typing import Type
-{%- for (className, class) in collectionItems %}
-from {{ class.__module__ }} import {{ className }}
+{%- set partial = namespace(value=False) %}
+{%- for item in collectionItems %}
+{%- if item.isPartial %}
+{%- set partial.value = True %}
+{%- endif %}
+from {{ item.classModule }} import {{ item.className }}
 {%- endfor %}
+{%- if partial.value %}
+from {{ inject.__module__ }} import ClassAssistedBuilder
+{%- endif %}
 import {{ collection.getItemType().__module__ }}
 
 class {{ collection.__name__ }}(Collection):
     @{{ inject.__name__ }}
     def __init__(
             self,
-            {%- for (className, class) in collectionItems %}
-            v{{ className }}: {{ className }},
+            {%- for item in collectionItems %}
+            {%- if item.isPartial %}
+            v{{ item.className }}: ClassAssistedBuilder[{{ item.className }}],
+            {%- else %}
+            v{{ item.className }}: {{ item.className }},
+            {%- endif %}
             {%- endfor %}
             ) -> None:
         super().__init__()
-        {%- for (className, class) in collectionItems %}
-        self[{{ className }}] = v{{ className }}
-        self.byClassname['{{ className }}'] = v{{ className }}
+        {%- for item in collectionItems %}
+        self[{{ item.className }}] = v{{ item.className }}
+        self.byClassname['{{ item.className }}'] = v{{ item.className }}
         {%- endfor %}
     {% if True %}{% endif %}
     {%- set itemTypeName = collection.getItemType().__name__ %}

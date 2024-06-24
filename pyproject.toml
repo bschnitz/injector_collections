@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "injector_collections"
-version = "0.0.19"
+version = "0.0.21"
 authors = [
   { name="Benjamin Schnitzler", email="regenbogenbauer@web.de" },
 ]
 description = "Collections for the Injector Package"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

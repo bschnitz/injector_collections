@@ -143,7 +143,7 @@ class App:
 ...
 ```
 
-### Type Hinting for Items in Collection
+### Type Hinting for Items in a Collection
 
 If all items in a collection e.g. implement a common Interface, the generated
 Collections may make use of type-Hinting. Simply implement a
@@ -163,3 +163,71 @@ class PluginCollection(Collection):
 After that the `PluginCollection.items`, `PluginCollection.__get__`,
 `PluginCollection.__set__` und `PluginCollection.byClassname` attributes/methods
 have proper type hints on `PluginItemInterface`.
+
+### Items with Assisted Injection
+
+If some of the items in the created collection have non-injectable parameters,
+one can use the `assisted`-parameter for the `@CollectionItem`-decorator, e.g.:
+```python
+from injector_collections import CollectionItem
+from my_collections.stubs import PluginCollection
+
+@CollectionItem(PluginCollection, assisted=True)
+class HelloPlugin:
+    def __init__(someNotInjectableParameter: SomeClass):
+        self.param = someNotInjectableParameter 
+
+    def run(self):
+        print("Hello Friends!")
+```
+
+Now the item will not be directly injected into the Collection, but instead a
+`ClassAssitedBuilder` instance for that item. Don't forget to adjust the [type
+hinting](type-hinting-for-items-in-a-collection).
+
+## FAQ or Why does it not work?
+
+The process of creating the collections is quite clumsy and assumes that the
+developer sets quite a lot of things right. If it does not work, it is quite
+likely, that You just forgot one of these awful details:
+
+- Is there a stub for the collection?
+- Are all items annotated with @CollectionItem?
+- Is the Type-Argument of @CollectionItem the correct collection (stub)?
+- Are the items all inside a proper module hierarchy (the directory and all
+  parent directories of the items should contain an `__init__.py`).
+- Have You generated the collections using `generateCollections`?
+- Did You add the module or a parent module of the items to the module list of
+  `generateCollections`?
+
+When the complexity of the project increases, it is quite likely, that You will
+encounter recursive import problems. Some things You can do:
+
+- Import only stubs, wherever possible.
+- If You just need typehinting for a class, which may cause import recursion.
+  You can import it *only for type-checking* like this:
+  ```python
+  from abc import abstractmethod
+  from typing import TYPE_CHECKING
+
+  # avoid circular imports, we only need PipelineContext for the LSP (type check)
+  if TYPE_CHECKING:
+      from xyz import Someclass
+
+  class SomeInterface:
+      @abstractmethod
+      def hello() -> 'SomeClass':
+          pass
+  ```
+- There are some really strange cases, where a certain collection name causes an
+  error with `injector`. I can't say, if it's a bug in `injector` or
+  `injector_collections`. Just try another collection name.
+- There may be another bug, especially related to assisted injection. This may
+  be circumvented with using different imports on collection generation and
+  afterwards:
+  ```python
+  # use this import only for the generation
+  from my_collections.generated import PluginCollection
+  # use this import otherwise
+  from injection.collections.generated.PluginCollection import PluginCollection
+  ```
