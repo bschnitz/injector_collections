@@ -9,6 +9,9 @@ class Collection:
     def items(self) -> dict[Type, Any]:
         return self._items
 
+    def __contains__(self, key):
+        return key in self._items
+
     def __getitem__(self, key) -> Any:
         return self._items[key]
 

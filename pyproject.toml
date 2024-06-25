@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "injector_collections"
-version = "0.0.21"
+version = "0.0.22"
 authors = [
   { name="Benjamin Schnitzler", email="regenbogenbauer@web.de" },
 ]

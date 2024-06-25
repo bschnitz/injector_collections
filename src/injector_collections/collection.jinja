@@ -1,14 +1,14 @@
 from {{ inject.__module__ }} import {{ inject.__name__ }}
 from injector_collections import Collection
 from typing import Type
-{%- set partial = namespace(value=False) %}
+{%- set assisted = namespace(value=False) %}
 {%- for item in collectionItems %}
-{%- if item.isPartial %}
-{%- set partial.value = True %}
+{%- if item.isAssisted %}
+{%- set assisted.value = True %}
 {%- endif %}
 from {{ item.classModule }} import {{ item.className }}
 {%- endfor %}
-{%- if partial.value %}
+{%- if assisted.value %}
 from {{ inject.__module__ }} import ClassAssistedBuilder
 {%- endif %}
 import {{ collection.getItemType().__module__ }}
@@ -18,7 +18,7 @@ class {{ collection.__name__ }}(Collection):
     def __init__(
             self,
             {%- for item in collectionItems %}
-            {%- if item.isPartial %}
+            {%- if item.isAssisted %}
             v{{ item.className }}: ClassAssistedBuilder[{{ item.className }}],
             {%- else %}
             v{{ item.className }}: {{ item.className }},
@@ -27,7 +27,11 @@ class {{ collection.__name__ }}(Collection):
             ) -> None:
         super().__init__()
         {%- for item in collectionItems %}
+        {%- if item.isAssisted %}
+        self[ClassAssistedBuilder[{{ item.className }}]] = v{{ item.className }}
+        {%- else %}
         self[{{ item.className }}] = v{{ item.className }}
+        {%- endif %}
         self.byClassname['{{ item.className }}'] = v{{ item.className }}
         {%- endfor %}
     {% if True %}{% endif %}
