@@ -222,12 +222,32 @@ encounter recursive import problems. Some things You can do:
 - There are some really strange cases, where a certain collection name causes an
   error with `injector`. I can't say, if it's a bug in `injector` or
   `injector_collections`. Just try another collection name.
+- If the project grows, there may be circular dependencies, because all stubs
+  are in a single file. That can be circumvented by changing the file structure:
+  ```
+  src
+  └── my_collections
+      ├── __init__.py
+      └── stubs
+          ├── __init__.py
+          ├── PluginCollection.py
+          └── SomeOtherCollection.py
+  ```
+  `__init__.py` must have the following contents:
+  ```python
+  from my_collections.stubs.PluginCollection import *
+  from my_collections.stubs.SomeOtherCollection import *
+  ... # other collection definitions not included in a seperate file
+  ```
+  Now import from `my_collections.stubs.PluginCollection` and
+  `my_collections.stubs.SomeOtherCollection` seperately in your code when using
+  `@CollectionItem(PluginCollection)` or `@CollectionItem(SomeOtherCollection)`.
 - There may be another bug, especially related to assisted injection. This may
   be circumvented with using different imports on collection generation and
   afterwards:
   ```python
-  # use this import only for the generation
-  from my_collections.generated import PluginCollection
-  # use this import otherwise
-  from injection.collections.generated.PluginCollection import PluginCollection
+  if GENERATING_INJECTOR_COLLECTIONS:
+      from my_collections.generated import PluginCollection
+  else:
+      from injection.collections.generated.PluginCollection import PluginCollection
   ```
