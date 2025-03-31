@@ -142,21 +142,19 @@ class App:
 ...
 ```
 
-### Type Hinting for Items in a Collection
+### Type Hinting for polymorphic Items in a Collection
 
 If all items in a collection e.g. implement a common Interface, the generated
-Collections may make use of type-Hinting. Simply implement a
-`getItemType`-Method in your collection class like that:
+Collections may make use of type-Hinting. The Interface-Type can then be
+provided as generic argument when deriving from `Collection`.
 ``` python
 # my_collections/stub.py
 
 from plugins import PluginInterface
 from injector_collections import Collection
 
-class PluginCollection(Collection):
-    @classmethod
-    def getItemType(cls):
-        return PluginInterface
+class PluginCollection(Collection[PluginInterface]):
+    pass
 ```
 
 After that the `PluginCollection.items`, `PluginCollection.__get__`,

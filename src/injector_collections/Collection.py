@@ -1,10 +1,13 @@
 import importlib
+from injector import inject, Injector
 
 class CollectionException(Exception):
     pass
 
 class Collection[T]:
-    def __init__(self):
+    @inject
+    def __init__(self, injector: Injector):
+        self.injector = injector
         self._generatedCollection = None
 
     @property
@@ -33,19 +36,22 @@ class Collection[T]:
 
     @classmethod
     def getGeneratedModulePath(cls) -> str:
-        if not (subclasses := cls.__subclasses__()):
-            raise CollectionException("Collection cannot be used directly.")
+        _class = next(iter(cls.__subclasses__()), cls)
 
         # get everything before "collections" in module path and append "generated"
         # also append the generated collections module name
-        module_path_parts = subclasses[0].__module__.split(".")
+        module_path_parts = _class.__module__.split(".")
         last_index = len(module_path_parts) - 1 - module_path_parts[::-1].index("collections")
         generatedModulesPath = ".".join(module_path_parts[:last_index]) + ".generated"
-        return f"{generatedModulesPath}.generated.{cls.getCollectionName()}"
+        return f"{generatedModulesPath}.{cls.getCollectionName()}"
 
     def _getGeneratedCollection(self):
+        if self.injector is None:
+            raise CollectionException("injector must be set for class Collection.")
+
         if self._generatedCollection is None:
             module = importlib.import_module(self.getGeneratedModulePath())
-            self._generatedCollection = getattr(module, self.getCollectionName())
+            _class = getattr(module, self.getCollectionName())
+            self._generatedCollection = self.injector.get(_class)
 
         return self._generatedCollection

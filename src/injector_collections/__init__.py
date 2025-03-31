@@ -1,7 +1,5 @@
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 from injector_collections.Generator import Generator
-from injector_collections.Collection import Collection
-from injector_collections.CollectionItem import CollectionItem
 
 GENERATING_INJECTOR_COLLECTIONS = False
 
