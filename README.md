@@ -252,5 +252,5 @@ git commit
 git tag v$VERSION # create a tag for latest commit
 git push origin master --tags # push commit + tag
 hatchling build
-twin upload dist/*-$VERSION-*.whl dist*-$VERSION.tar.gz
+twine upload dist/*-$VERSION-*.whl dist/*-$VERSION.tar.gz
 ```
