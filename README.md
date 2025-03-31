@@ -16,7 +16,7 @@ pip install injector_collections
 To be able to use this package, You must create a new module-directory inside
 your python project. The name of this module-directory does not matter, let's
 name it `my_collections` here. Inside this module-directory You must create a
-file (module) named `stubs.py` (and of course an `__init__.py`).
+file (module) named `collections.py` (and of course an `__init__.py`).
 
 Provided your root-directory is named `src`, the following file-tree will be the
 result:
@@ -24,7 +24,7 @@ result:
 src
 └── my_collections
     ├── __init__.py
-    └── stubs.py
+    └── collections.py
 ```
 
 All files can be initially empty.
@@ -57,7 +57,7 @@ injector = Injector()
 outer = injector.get(App)
 ```
 
-Now the first step is to create a stub collection for your plugins:
+Now the first step is to create a collection class for your plugins:
 ``` python
 # my_collections/stub.py
 
@@ -76,8 +76,8 @@ your previously defined `PluginCollection` as argument:
 # plugins.py
 
 from injector_collections import CollectionItem
-# The @CollectionItem decorator needs those stubs as argument
-from my_collections.stubs import PluginCollection
+# The @CollectionItem decorator needs the collection class as argument
+from my_collections.collections import PluginCollection
 
 @CollectionItem(PluginCollection)
 class HelloPlugin:
@@ -118,8 +118,7 @@ Now you just need to import the `PluginCollection` to your `App` and use it:
 ```python
 # app.py
 
-# mark that this time, we import from the generated collections, not the stubs!
-from my_collections.generated import PluginCollection
+from my_collections.collections import PluginCollection
 
 from plugins import HelloPlugin
 
@@ -147,7 +146,7 @@ class App:
 
 If all items in a collection e.g. implement a common Interface, the generated
 Collections may make use of type-Hinting. Simply implement a
-`getItemType`-Method in your stubs like that:
+`getItemType`-Method in your collection class like that:
 ``` python
 # my_collections/stub.py
 
@@ -170,7 +169,7 @@ If some of the items in the created collection have non-injectable parameters,
 one can use the `assisted`-parameter for the `@CollectionItem`-decorator, e.g.:
 ```python
 from injector_collections import CollectionItem
-from my_collections.stubs import PluginCollection
+from my_collections.collections import PluginCollection
 
 @CollectionItem(PluginCollection, assisted=True)
 class HelloPlugin:
@@ -191,9 +190,9 @@ The process of creating the collections is quite clumsy and assumes that the
 developer sets quite a lot of things right. If it does not work, it is quite
 likely, that You just forgot one of these awful details:
 
-- Is there a stub for the collection?
+- Is there a collection class for the collection?
 - Are all items annotated with @CollectionItem?
-- Is the Type-Argument of @CollectionItem the correct collection (stub)?
+- Is the Type-Argument of @CollectionItem the correct collection class?
 - Are the items all inside a proper module hierarchy (the directory and all
   parent directories of the items should contain an `__init__.py`).
 - Have You generated the collections using `generateCollections`?
@@ -203,7 +202,6 @@ likely, that You just forgot one of these awful details:
 When the complexity of the project increases, it is quite likely, that You will
 encounter recursive import problems. Some things You can do:
 
-- Import only stubs, wherever possible.
 - If You just need typehinting for a class, which may cause import recursion.
   You can import it *only for type-checking* like this:
   ```python
@@ -222,32 +220,37 @@ encounter recursive import problems. Some things You can do:
 - There are some really strange cases, where a certain collection name causes an
   error with `injector`. I can't say, if it's a bug in `injector` or
   `injector_collections`. Just try another collection name.
-- If the project grows, there may be circular dependencies, because all stubs
+- If the project grows, there may be circular dependencies, because all collections
   are in a single file. That can be circumvented by changing the file structure:
   ```
   src
   └── my_collections
       ├── __init__.py
-      └── stubs
+      └── collections
           ├── __init__.py
           ├── PluginCollection.py
           └── SomeOtherCollection.py
   ```
   `__init__.py` must have the following contents:
   ```python
-  from my_collections.stubs.PluginCollection import *
-  from my_collections.stubs.SomeOtherCollection import *
+  from my_collections.collections.PluginCollection import *
+  from my_collections.collections.SomeOtherCollection import *
   ... # other collection definitions not included in a seperate file
   ```
-  Now import from `my_collections.stubs.PluginCollection` and
-  `my_collections.stubs.SomeOtherCollection` seperately in your code when using
+  Now import from `my_collections.collections.PluginCollection` and
+  `my_collections.collections.SomeOtherCollection` seperately in your code when using
   `@CollectionItem(PluginCollection)` or `@CollectionItem(SomeOtherCollection)`.
-- There may be another bug, especially related to assisted injection. This may
-  be circumvented with using different imports on collection generation and
-  afterwards:
-  ```python
-  if GENERATING_INJECTOR_COLLECTIONS:
-      from my_collections.generated import PluginCollection
-  else:
-      from injection.collections.generated.PluginCollection import PluginCollection
-  ```
+
+## Developement
+
+```sh
+git tag # show all existing tags (versions)
+VERSION=0.0.25 # use a not yet existing version number
+# edit pyproject.toml and insert new version
+git add .
+git commit
+git tag v$VERSION # create a tag for latest commit
+git push origin master --tags # push commit + tag
+hatchling build
+twin upload dist/*-$VERSION-*.whl dist*-$VERSION.tar.gz
+```
