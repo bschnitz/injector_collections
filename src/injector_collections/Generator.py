@@ -1,97 +1,82 @@
+from collections.abc import Callable, Iterable
 import os
 import shutil
 import pkgutil
+from importlib import util, import_module
+from pathlib import Path
+from typing import Generator as Gen
 import importlib.machinery
 from types import ModuleType
-from typing import Callable, Iterable, Type
 from jinja2 import FileSystemLoader
 from jinja2 import Environment
 from injector_collections.CollectionItem import CollectionItem
 import injector_collections
-from importlib import util, import_module
-from pathlib import Path
-from typing import Generator as Gen
+from injector_collections.constants import (
+    generatedCollectionsModuleName,
+    collectionTemplateFilename,
+)
 
 class Generator:
-    generatedCollectionsDirName = 'generated'
-    collectionTemplateFilename = 'collection.jinja'
     def generate(
-            self,
-            inject: Callable,
-            collectionModule: str,
-            scannedModules: Iterable[str]
-            ):
+        self,
+        inject: Callable,
+        collectionModule: str,
+        scannedModules: Iterable[str]
+    ):
         collectionModuleDirectory = self.getModuleDirectory(collectionModule)
 
-        generatedDirPath = f'{collectionModuleDirectory}/{self.generatedCollectionsDirName}'
+        generatedDirPath = f'{collectionModuleDirectory}/{generatedCollectionsModuleName}'
         shutil.rmtree(generatedDirPath, ignore_errors=True)
         os.makedirs(generatedDirPath, exist_ok=True)
 
-        collectionModuleName = self.getModuleName(collectionModule)
-
-        # we must import the stubs to the generated module, since later on,
-        # there may be imports like: "from path.to.generated import xyz" in
-        # files which contain the @CollectionItem decorator, which will be
-        # imported by gatherCollectionMetadata. This can happen, if a
-        # collection item itself uses a collection.
-        with open(f'{generatedDirPath}/__init__.py', 'w') as f:
-            f.write(f"from {collectionModuleName}.stubs import *\n")
+        Path(f'{generatedDirPath}/__init__.py').touch()
 
         collectionMetadata = self.gatherCollectionMetadata(scannedModules)
 
         # create each collection in a seperate '<CollectionName>.py' file
         for collectionType, collectionItems in collectionMetadata.items():
             generatedFilePath = f'{generatedDirPath}/{collectionType.__name__}.py'
-            with open(generatedFilePath, 'w') as f:
+            with open(generatedFilePath, 'w', encoding='utf-8') as f:
                 f.write(self.renderCollectionTemplate(
                     inject,
                     collectionType,
                     collectionItems))
 
-        # import every generated collection into the 'generated'-Module
-        with open(f'{generatedDirPath}/__init__.py', 'w') as f:
-            for file in os.listdir(generatedDirPath):
-                filepath = f'{generatedDirPath}/{file}'
-                if os.path.isfile(filepath) and file != '__init__.py':
-                    moduleClass = Path(filepath).stem
-                    moduleName = f'{collectionModuleName}.generated.{moduleClass}'
-                    f.write(f"from {moduleName} import {moduleClass}\n")
-
     def getModuleDirectory(self, module: str|ModuleType) -> str:
         if isinstance(module, str):
             moduleSpec = util.find_spec(module)
-            assert(moduleSpec is not None)
+            assert moduleSpec is not None
             modulePath = moduleSpec.origin
         else:
             modulePath = module.__file__
-        assert(modulePath is not None)
+        assert modulePath is not None
         return os.path.dirname(modulePath)
 
     def getModuleName(self, module: str|ModuleType) -> str:
         if isinstance(module, str):
             return module
-        else:
-            return module.__name__
+
+        return module.__name__
 
     def renderCollectionTemplate(
             self,
             inject: Callable,
-            collection: Type,
+            collection: type,
             collectionItems: list[CollectionItem]):
         icModuleDirectory = self.getModuleDirectory(injector_collections)
         file_loader = FileSystemLoader(f'{icModuleDirectory}')
         env = Environment(loader=file_loader)
-        template = env.get_template(self.collectionTemplateFilename)
+        template = env.get_template(collectionTemplateFilename)
         return template.render(
             collection = collection,
             collectionItems = collectionItems,
             inject = inject
-            )
+        )
 
     def gatherCollectionMetadata(
             self,
             scannedModules: Iterable[str],
-            ) -> dict[Type, list[CollectionItem]]:
+            ) -> dict[type, list[CollectionItem]]:
         ''' Gather Metadata for Collection generation with template
 
         Recursively walks through all modules in 'scannedModules' and gathers
@@ -100,16 +85,14 @@ class Generator:
         for m in scannedModules:
             for spec in self.walkModules(m):
                 if spec.origin is not None:
-                    with open(spec.origin, 'r') as f:
+                    with open(spec.origin, 'r', encoding='utf-8') as f:
                         if '@CollectionItem' in f.read():
                             import_module(spec.name)
 
         return CollectionItem.getItems()
 
     def walkModules(self, rootModule: str) -> Gen[importlib.machinery.ModuleSpec, None, None]:
-        info = util.find_spec(rootModule)
-
-        if info is None:
+        if (info := util.find_spec(rootModule)) is None:
             return
 
         yield info
@@ -119,10 +102,10 @@ class Generator:
 
         for modinfo in pkgutil.iter_modules(info.submodule_search_locations):
             name = f'{info.name}.{modinfo.name}'
-            spec = util.find_spec(name)
-            if spec is not None:
+
+            if (spec := util.find_spec(name)) is not None:
                 yield spec
+
             submods = self.walkModules(name)
-            next(submods) # remove the root, which was just yielded
-            for mi in submods:
-                yield mi
+            next(submods, None) # remove the root, which was just yielded
+            yield from submods
